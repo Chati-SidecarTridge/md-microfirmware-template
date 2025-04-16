@@ -36,16 +36,17 @@ CMD_NOP				equ 0		; No operation command
 CMD_RESET			equ 1		; Reset command
 CMD_BOOT_GEM		equ 2		; Boot GEM command
 CMD_TERMINAL		equ 3		; Terminal command
+CMD_START 			equ 4  		; Continue boot process and emulation
+
 
 _conterm			equ $484	; Conterm device number
-
 
 ; Constants needed for the commands
 RANDOM_TOKEN_ADDR:        equ (ROM4_ADDR + $F000) 	      ; Random token address at $FAF000
 RANDOM_TOKEN_SEED_ADDR:   equ (RANDOM_TOKEN_ADDR + 4) 	  ; RANDOM_TOKEN_ADDR + 4 bytes
 RANDOM_TOKEN_POST_WAIT:   equ $1        		      	  ; Wait this cycles after the random number generator is ready
 
-SHARED_VARIABLES:     	  equ (RANDOM_TOKEN_ADDR + $200)  ; random token + 512 bytes to the shared variables area: $FAF200
+SHARED_VARIABLES:     	  equ (RANDOM_TOKEN_ADDR + (16 * 4)); random token + 16*4 bytes to the shared variables area
 
 ROMCMD_START_ADDR:        equ $FB0000					  ; We are going to use ROM3 address
 CMD_MAGIC_NUMBER    	  equ ($ABCD) 					  ; Magic number header to identify a command
@@ -59,10 +60,9 @@ APP_TERMINAL_START   		equ $0 ; Start terminal command
 APP_TERMINAL_KEYSTROKE 		equ $1 ; Keystroke command
 
 
+
 	include inc/sidecart_macros.s
 	include inc/tos.s
-
-
 
 ; Macros
 ; XBIOS Vsync wait
@@ -128,21 +128,15 @@ check_keys			macro
 
 check_commands		macro
 					move.l (FRAMEBUFFER_ADDR + FRAMEBUFFER_SIZE), d6	; Store in the D6 register the remote command value
-					cmp.l #CMD_TERMINAL, d6		; Check if the command is a terminal command
-					bne.s .\@check_reset
-
-					; Check the keys for the terminal emulation
-					check_keys
-					bra.s .\@bypass
-.\@check_reset:
 					cmp.l #CMD_RESET, d6		; Check if the command is a reset
 					beq .reset					; If it is, reset the computer
 					cmp.l #CMD_BOOT_GEM, d6		; Check if the command is to boot GEM
 					beq boot_gem				; If it is, boot GEM
+					cmp.l #CMD_START, d6		; Check if the command is to continue booting
+					beq rom_function			; If it is, continue booting with the emulation
 
 					; If we are here, the command is a NOP
-					; If the command is a NOP, check the shift keys to bypass the command
-					check_shift_keys
+					; If the command is a NOP, check the keys to send terminal commands
 					check_keys
 .\@bypass:
 					endm
@@ -271,6 +265,9 @@ boot_gem:
 	; If we get here, continue loading GEM
     rts
 
+rom_function:
+	; Place here your driver code
+	rts
 ; Shared functions included at the end of the file
 ; Don't forget to include the macros for the shared functions at the top of file
     include "inc/sidecart_functions.s"
