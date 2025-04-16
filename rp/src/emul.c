@@ -370,7 +370,15 @@ void emul_start() {
   blink_on();
 #endif
 
-  // 8. Start the main loop
+  // 8. Configure the SELECT button
+  // Short press: reset the device and restart the app
+  // Long press: reset the device and erase the flash.
+  select_configure();
+  select_coreWaitPush(
+      reset_device,
+      reset_deviceAndEraseFlash);  // Wait for the SELECT button to be pushed
+
+  // 9. Start the main loop
   // The main loop is the core of the app. It is responsible for running the
   // app, handling the user input, and performing the tasks of the app.
   // The main loop runs until the user decides to exit.
@@ -383,8 +391,8 @@ void emul_start() {
       make_timeout_time_ms(DOWNLOAD_DAY_MS);  // Future time
   while (getKeepActive()) {
 #if PICO_CYW43_ARCH_POLL
-    network_safe_poll();
-    cyw43_arch_wait_for_work_until(wifi_scan_time);
+    network_safePoll();
+    cyw43_arch_wait_for_work_until(wifiScanTime);
 #else
     sleep_ms(SLEEP_LOOP_MS);
 #endif
@@ -392,18 +400,12 @@ void emul_start() {
     term_loop();
   }
 
-  // 9. Send START computer command
-  // We are assuming that the computer will always start in the setup mode, and
-  // after existing the configuration or a timeout it will continue the boot
-  // process. The START command will indicate the computer to continue with the
-  // boot process, but with the code to perform the emulation of the device
-  // instead of terminating or reseting the computer.
-  SEND_COMMAND_TO_DISPLAY(DISPLAY_COMMAND_START);
-
   // 10. Send RESET computer command
   // Ok, so we are done with the setup but we want to reset the computer to
   // reboot in the same microfirmware app or start the booster app
 
+  select_coreWaitPushDisable();  // Disable the SELECT button
+  sleep_ms(SLEEP_LOOP_MS);
   // We must reset the computer
   SEND_COMMAND_TO_DISPLAY(DISPLAY_COMMAND_RESET);
   sleep_ms(SLEEP_LOOP_MS);
@@ -418,6 +420,7 @@ void emul_start() {
     settings_save(aconfig_getContext(), true);
 
     // Jump to the booster app
+    DPRINTF("Jumping to the booster app...\n");
     reset_jump_to_booster();
   }
 }
