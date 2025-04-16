@@ -115,6 +115,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     hardware_flash           # Flash memory access
     no-OS-FatFS-SD-SDIO-SPI-RPi-Pico                # FATFS library   
     pico_stdlib              # Core functionality
+    pico_multicore          # Multicore support
     httpc                    # HTTP client
     settings                 # Custom settings library
     u8g2                     # for display
@@ -123,8 +124,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # Conditionally link the CYW43 architecture library if supported
 if (PICO_CYW43_SUPPORTED)
     target_link_libraries(${PROJECT_NAME} PRIVATE
-#        pico_cyw43_arch_lwip_poll
-        pico_cyw43_arch_lwip_threadsafe_background
+        pico_cyw43_arch_lwip_poll
+#        pico_cyw43_arch_lwip_threadsafe_background
         )
 else()
     message(WARNING "CYW43 architecture not supported")
@@ -181,7 +182,7 @@ if(NOT RELEASE_DATE)
 endif()
 
 if (NOT _DEBUG)
-        set(_DEBUG 0)
+        set(_DEBUG 1)
 endif()
 
 # Debug outputs
