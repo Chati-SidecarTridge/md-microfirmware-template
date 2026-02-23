@@ -19,17 +19,6 @@
 #include "pico/cyw43_arch.h"
 #endif
 
-// Morse code
-#define DOT_DURATION_MS 150
-#define DASH_DURATION_MS 450
-#define SYMBOL_GAP_MS 150
-#define CHARACTER_GAP_MS 700
-
-typedef struct {
-  char character;
-  const char *morse;
-} MorseCode;
-
 /**
  * @brief   Blinks an LED to represent a given character in Morse code.
  *
@@ -44,16 +33,6 @@ typedef struct {
  *
  * @return  void
  */
-void blink_morse(char ch);
-
-/**
- * @brief Flashes the letter 'E' in Morse code to indicate an error.
- *
- * This function enters an infinite loop where it continuously flashes the
- * letter 'E' in Morse code.
- */
-void blink_error();
-
 /**
  * @brief Turns off the LED.
  *
