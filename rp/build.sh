@@ -83,11 +83,12 @@ mkdir build
 # And previously pushed to the repo version
 
 # Build the project
-# Build the project ALWAYS in Debug mode. In Release mode breaks.
-# Memory issues? Overoptimizations?
+# NOTE: The project is always built with CMAKE_BUILD_TYPE=MinSizeRel.
+#       Using a full Release build previously caused breakage (e.g. memory issues/over‑optimizations).
 echo "Building the project"
 cd build
-#cmake ../src -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+# Legacy option to honor BUILD_TYPE instead of forcing MinSizeRel:
+# cmake ../src -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 cmake ../src -DCMAKE_BUILD_TYPE=MinSizeRel
 
 make -j4 
