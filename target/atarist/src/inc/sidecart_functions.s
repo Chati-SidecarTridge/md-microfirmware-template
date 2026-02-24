@@ -81,8 +81,9 @@ get_tos_version:
     move.l #SHARED_VARIABLE_SVERSION, d3    ; Variable index
     move.l d0, d4                           ; Variable value
     send_sync CMD_SET_SHARED_VAR, 8
-    tst.w d0
-    bne.s get_tos_version       ; Test if the command was successful. If not, retry
+    tst.w d0                    ; d0 holds error code: 0 = success, nonzero = failure
+    ; Do not retry indefinitely here; rely on send_sync's internal retry logic.
+    ; If the command failed, return with the error code in d0 instead of hard-locking boot.
     rts
 
 ; Send an sync command to the Sidecart
