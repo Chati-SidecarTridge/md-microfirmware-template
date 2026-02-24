@@ -19,6 +19,8 @@
 #include "pico/cyw43_arch.h"
 #endif
 
+#define CHARACTER_GAP_MS 700
+
 /**
  * @brief   Blinks an LED to represent a given character in Morse code.
  *
