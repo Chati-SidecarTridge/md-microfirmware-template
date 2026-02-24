@@ -10,19 +10,18 @@ git submodule update --init --recursive
 # Pin the building versions
 echo "Pinning the SDK versions..."
 cd pico-sdk
-git checkout tags/2.1.1
+git checkout tags/2.2.0
 cd ..
 
 echo "Pinning the Extras SDK versions..."
 cd pico-extras
-git checkout tags/sdk-2.1.1
+git checkout tags/sdk-2.2.0
 cd ..
 
 echo "Pinning the FatFs SDK versions..."
 cd fatfs-sdk
 #git checkout v3.5.1
-#git checkout 6bdb39f96fe8b897aff12bf3416e32515792e318
-git checkout tags/v3.6.2
+git checkout 6bdb39f96fe8b897aff12bf3416e32515792e318
 cd ..
 
 # This is a dirty hack to guarantee that I can use the fatfs-sdk submodule
@@ -84,10 +83,14 @@ mkdir build
 # And previously pushed to the repo version
 
 # Build the project
+# NOTE: The project is always built with CMAKE_BUILD_TYPE=MinSizeRel.
+#       Using a full Release build previously caused breakage (e.g. memory issues/over‑optimizations).
 echo "Building the project"
 cd build
-#cmake ../src -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-cmake ../src -DCMAKE_BUILD_TYPE=Debug
+# Legacy option to honor BUILD_TYPE instead of forcing MinSizeRel:
+# cmake ../src -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+cmake ../src -DCMAKE_BUILD_TYPE=MinSizeRel
+
 make -j4 
 
 # Copy the built firmware to the /dist folder
