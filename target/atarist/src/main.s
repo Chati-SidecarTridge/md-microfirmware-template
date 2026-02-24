@@ -26,7 +26,7 @@
 ROM4_ADDR			equ $FA0000
 FRAMEBUFFER_ADDR	equ $FA8000
 FRAMEBUFFER_SIZE 	equ 8000	; 8Kbytes of a 320x200 monochrome screen
-SCREEN_SIZE			equ (-4096)	; Use the memory before the screen memory to store the copied code
+SCREEN_SIZE			equ (-4096)	; Negative work-area offset: use 4KB before screen memory to store the copied code (not actual screen size)
 COLS_HIGH			equ 20		; 16 bit columns in the ST
 ROWS_HIGH			equ 200		; 200 rows in the ST
 BYTES_ROW_HIGH		equ 80		; 80 bytes per row in the ST
