@@ -182,8 +182,8 @@ pre_auto:
 	get_screen_base
 	move.l d0, a2
 
-	lea SCREEN_SIZE(a2), a2		; Move to the end of the screen memory
-	move.l a2, a3				; Save the screen memory address in A3
+	lea SCREEN_SIZE(a2), a2		; Move to the work area just after the screen memory
+	move.l a2, a3				; Save the relocation destination address in A3
 	; Copy the code out of the ROM to avoid unstable behavior
     move.l #end_rom_code - start_rom_code, d6
     lea start_rom_code, a1    ; a1 points to the start of the code in ROM
