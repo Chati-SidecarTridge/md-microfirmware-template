@@ -34,4 +34,6 @@ jobs:
       run: sed -i 's/-it//' /usr/local/bin/stcmd
 
     - name: Run - Build PICO_W release version
-      run: ./build.sh pico_w Release ${{ secrets.APP_UUID }}
+      env:
+        APP_UUID: ${{ secrets.APP_UUID }}
+      run: ./build.sh pico_w Release ${APP_UUID:-44444444-4444-4444-8444-444444444444}
