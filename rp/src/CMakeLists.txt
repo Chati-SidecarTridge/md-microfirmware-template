@@ -104,6 +104,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         sdcard.c
         select.c
         term.c
+        tprotocol.c
         settings/settings.c)
 
 # Create map/bin/hex/uf2 files
