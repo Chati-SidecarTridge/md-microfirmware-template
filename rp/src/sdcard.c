@@ -1,7 +1,25 @@
 #include "sdcard.h"
 
+static FATFS *mountedFsPtr = NULL;
+static bool sdMounted = false;
+
+static void sdcard_warnDebugRisk(void) {
+  size_t sdCount = sd_get_num();
+  for (size_t i = 0; i < sdCount; i++) {
+    sd_card_t *sdCard = sd_get_by_num(i);
+    if ((sdCard != NULL) && !sdCard->use_card_detect) {
+      DPRINTF(
+          "WARNING: SD card-detect disabled on slot %u. "
+          "When debugging, starting without an SD card can trigger assertions "
+          "during init.\n",
+          (unsigned)i);
+    }
+  }
+}
+
 static sdcard_status_t sdcardInit() {
   DPRINTF("Initializing SD card...\n");
+  sdcard_warnDebugRisk();
   // Initialize the SD card
   bool success = sd_init_driver();
   if (!success) {
@@ -36,6 +54,14 @@ bool sdcard_dirExist(const char *dir) {
 }
 
 sdcard_status_t sdcard_initFilesystem(FATFS *fsPtr, const char *folderName) {
+  sdMounted = false;
+  mountedFsPtr = NULL;
+
+  if ((fsPtr == NULL) || (folderName == NULL) || (folderName[0] == '\0')) {
+    DPRINTF("Invalid SD filesystem initialization arguments.\n");
+    return SDCARD_INIT_ERROR;
+  }
+
   // Check the status of the sd card
   sdcard_status_t sdcardOk = sdcardInit();
   if (sdcardOk != SDCARD_INIT_OK) {
@@ -66,6 +92,8 @@ sdcard_status_t sdcard_initFilesystem(FATFS *fsPtr, const char *folderName) {
     }
     DPRINTF("Folder created.\n");
   }
+  mountedFsPtr = fsPtr;
+  sdMounted = true;
   return SDCARD_INIT_OK;
 }
 
@@ -76,6 +104,11 @@ void sdcard_changeSpiSpeed(int baudRateKbits) {
     if (baudRate > 0) {
       DPRINTF("Changing SD card baud rate to %i\n", baudRate);
       sd_card_t *sdCard = sd_get_by_num(sdNum - 1);
+      if ((sdCard == NULL) || (sdCard->spi_if_p == NULL) ||
+          (sdCard->spi_if_p->spi == NULL)) {
+        DPRINTF("SD card SPI interface is not available\n");
+        return;
+      }
       sdCard->spi_if_p->spi->baud_rate = baudRate * SDCARD_KILOBAUD;
     } else {
       DPRINTF("Invalid baud rate. Using default value\n");
@@ -98,6 +131,11 @@ void sdcard_setSpiSpeedSettings() {
 
 void sdcard_getInfo(FATFS *fsPtr, uint32_t *totalSizeMb,
                     uint32_t *freeSpaceMb) {
+  if ((fsPtr == NULL) || (totalSizeMb == NULL) || (freeSpaceMb == NULL)) {
+    DPRINTF("Invalid SD card info arguments.\n");
+    return;
+  }
+
   DWORD freClust;
 
   // Set initial values to zero as a precaution
@@ -123,4 +161,36 @@ void sdcard_getInfo(FATFS *fsPtr, uint32_t *totalSizeMb,
 
   // Convert bytes to megabytes
   *freeSpaceMb = freeSpaceBytes / SDCARD_MEGABYTE;
+}
+
+bool sdcard_isMounted(void) { return sdMounted && (mountedFsPtr != NULL); }
+
+bool sdcard_getMountedInfo(uint32_t *totalSizeMb, uint32_t *freeSpaceMb) {
+  if ((totalSizeMb == NULL) || (freeSpaceMb == NULL)) {
+    return false;
+  }
+
+  *totalSizeMb = 0;
+  *freeSpaceMb = 0;
+
+  if (!sdcard_isMounted()) {
+    return false;
+  }
+
+  FATFS *fs = mountedFsPtr;
+  DWORD freeClusters = 0;
+  FRESULT res = f_getfree("", &freeClusters, &fs);
+  if ((res != FR_OK) || (fs == NULL)) {
+    DPRINTF("Error getting mounted free space information: %d\n", res);
+    return false;
+  }
+
+  uint64_t totalSectors = (uint64_t)(fs->n_fatent - 2U) * fs->csize;
+  *totalSizeMb =
+      (uint32_t)((totalSectors * NUM_BYTES_PER_SECTOR) / SDCARD_MEGABYTE);
+
+  uint64_t freeSpaceBytes =
+      (uint64_t)freeClusters * fs->csize * NUM_BYTES_PER_SECTOR;
+  *freeSpaceMb = (uint32_t)(freeSpaceBytes / SDCARD_MEGABYTE);
+  return true;
 }
