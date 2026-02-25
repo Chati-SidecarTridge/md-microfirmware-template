@@ -38,10 +38,21 @@
   do {                                                                        \
     while (!(xip_ctrl_hw->stat & XIP_STAT_FIFO_EMPTY))                        \
       (void)xip_ctrl_hw->stream_fifo;                                         \
+    int dma_chan = dma_claim_unused_channel(false);                            \
+    if (dma_chan < 0) {                                                       \
+      DPRINTF("No DMA channel available for firmware copy. Using memcpy.\n"); \
+      size_t __copy_words = (size_t)(emulROM_length);                         \
+      uint16_t *__dst = (uint16_t *)&__rom_in_ram_start__;                    \
+      const uint16_t *__src = (const uint16_t *)(emulROM);                    \
+      for (size_t __i = 0; __i < __copy_words; ++__i) {                       \
+        __dst[__i] = __src[__i];                                              \
+      }                                                                        \
+      break;                                                                   \
+    }                                                                         \
     xip_ctrl_hw->stream_addr = (uint32_t)&(emulROM)[0];                       \
     xip_ctrl_hw->stream_ctr = (emulROM_length) / 2;                           \
-    const uint dma_chan = dma_claim_unused_channel(true);                     \
     dma_channel_config cfg = dma_channel_get_default_config(dma_chan);        \
+    channel_config_set_transfer_data_size(&cfg, DMA_SIZE_32);                 \
     channel_config_set_read_increment(&cfg, false);                           \
     channel_config_set_write_increment(&cfg, true);                           \
     channel_config_set_dreq(&cfg, DREQ_XIP_STREAM);                           \
@@ -51,9 +62,8 @@
                           (emulROM_length) / 2,          /* Transfer count */ \
                           true /* Start immediately! */                       \
     );                                                                        \
-    while (dma_channel_is_busy(dma_chan)) {                                   \
-      tight_loop_contents();                                                  \
-    }                                                                         \
+    dma_channel_wait_for_finish_blocking(dma_chan);                           \
+    dma_channel_unclaim((uint)dma_chan);                                      \
   } while (0)
 
 #define CHANGE_ENDIANESS_BLOCK16(dest_ptr_word, size_in_bytes) \
@@ -105,11 +115,14 @@
 #define READ_LONGWORD(address, offset) \
   (*((volatile uint32_t *)((address) + (offset))))
 
-#define READ_AND_SWAP_LONGWORD(address, offset)                          \
-  ((((uint32_t)(*((volatile uint32_t *)((address) + (offset))) << 16) &  \
-     0xFFFF0000) |                                                       \
-    (((uint32_t)(*((volatile uint32_t *)((address) + (offset))) >> 16) & \
-      0xFFFF))))
+static inline uint32_t memfunc_readAndSwapLongword(
+    const volatile uint32_t *address) {
+  uint32_t raw = *address;
+  return (((raw << 16) & 0xFFFF0000u) | ((raw >> 16) & 0x0000FFFFu));
+}
+
+#define READ_AND_SWAP_LONGWORD(address, offset) \
+  memfunc_readAndSwapLongword((const volatile uint32_t *)((address) + (offset)))
 
 #define COPY_AND_SWAP_16BIT_DMA(dest, source, num_bytes)           \
   do {                                                             \
