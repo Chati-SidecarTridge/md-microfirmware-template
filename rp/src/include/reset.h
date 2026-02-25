@@ -1,8 +1,8 @@
 /**
  * File: reset.h
  * Author: Diego Parrilla Santamaría
- * Date: December 2025
- * Copyright: 2024 - GOODDATA LABS SL
+ * Date: December 2025, February 2026
+ * Copyright: 2024-2026 - GOODDATA LABS SL
  * Description: Header file for RESET functions of the booster app
  */
 

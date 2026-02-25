@@ -1,8 +1,8 @@
 /**
  * File: main.c
  * Author: Diego Parrilla Santamaría
- * Date: February 2025
- * Copyright: 2023-25 - GOODDATA LABS SL
+ * Date: February 2025, February 2026
+ * Copyright: 2023-2026 - GOODDATA LABS SL
  * Description: Main file for an app.
  */
 

@@ -1,8 +1,8 @@
 /**
  * File: download.c
  * Author: Diego Parrilla Santamaría
- * Date: February 2025
- * Copyright: 2025 - GOODDATA LABS
+ * Date: February 2025, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS
  * Description: Download files. Wrapper for HTTP and SD card.
  */
 

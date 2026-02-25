@@ -1,8 +1,8 @@
 /**
  * File: term.c
  * Author: Diego Parrilla Santamaría
- * Date: January 2025
- * Copyright: 2025 - GOODDATA LABS
+ * Date: January 2025, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS
  * Description: Online terminal
  */
 

@@ -1,8 +1,8 @@
 /**
  * File: tprotocol.h
  * Author: Diego Parrilla Santamaría
- * Date: August 2023 - January 20205
- * Copyright: 2023-25 - GOODDATA LABS SL
+ * Date: August 2023 - January 20205, February 2026
+ * Copyright: 2023-2026 - GOODDATA LABS SL
  * Description: Parse the protocol used to communicate with the ROM
  */
 

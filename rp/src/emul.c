@@ -1,8 +1,8 @@
 /**
  * File: emul.c
  * Author: Diego Parrilla Santamaría
- * Date: February 2025
- * Copyright: 2025 - GOODDATA LABS
+ * Date: February 2025, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS
  * Description: Template code for the core emulation
  */
 

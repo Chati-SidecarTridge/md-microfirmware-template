@@ -1,8 +1,8 @@
 /**
  * File: display_term.h
  * Author: Diego Parrilla Santamaría
- * Date: January 2025
- * Copyright: 2025 - GOODDATA LABS SL
+ * Date: January 2025, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS SL
  * Description: Header file for the term mode diplay functions.
  */
 

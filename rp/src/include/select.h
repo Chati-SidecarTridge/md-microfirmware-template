@@ -1,8 +1,8 @@
 /**
  * File: select.h
  * Author: Diego Parrilla Santamaría
- * Date: November 2025
- * Copyright: 2024 - GOODDATA LABS SL
+ * Date: November 2025, February 2026
+ * Copyright: 2024-2026 - GOODDATA LABS SL
  * Description: Header file for SELECT button detection functions
  */
 

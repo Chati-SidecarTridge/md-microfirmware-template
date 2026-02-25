@@ -1,8 +1,8 @@
 /**
  * File: emul.h
  * Author: Diego Parrilla Santamaría
- * Date: January 20205
- * Copyright: 2025 - GOODDATA LABS SL
+ * Date: January 20205, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS SL
  * Description: Header for the ROM emulator core and setup features
  */
 

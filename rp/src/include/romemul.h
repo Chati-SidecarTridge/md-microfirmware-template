@@ -1,8 +1,8 @@
 /**
  * File: romemul.h
  * Author: Diego Parrilla Santamaría
- * Date: July 2023-2025
- * Copyright: 2023-2025 - GOODDATA LABS SL
+ * Date: July 2023-2025, February 2026
+ * Copyright: 2023-2026 - GOODDATA LABS SL
  * Description: Header file for the ROM emulator C program.
  */
 

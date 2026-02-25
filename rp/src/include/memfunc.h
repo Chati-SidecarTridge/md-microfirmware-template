@@ -2,8 +2,8 @@
  * @file memfunc.h
  * @brief Header file with the macros and functions of the memory functions.
  * Author: Diego Parrilla Santamaría
- * Date: August 2024-2025
- * Copyright: 2024-2025 - GOODDATA LABS SL
+ * Date: August 2024-2025, February 2026
+ * Copyright: 2024-2026 - GOODDATA LABS SL
  * Description: Header file with the macros and functions of the memory
  * functions.
  */

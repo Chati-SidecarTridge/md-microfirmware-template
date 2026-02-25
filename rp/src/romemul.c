@@ -1,8 +1,8 @@
 /**
  * File: romemul.c
  * Author: Diego Parrilla Santamaría
- * Date: July 2023-February 2025
- * Copyright: 2023-25 - GOODDATA LABS SL
+ * Date: July 2023-February 2025, February 2026
+ * Copyright: 2023-2026 - GOODDATA LABS SL
  * Description: C file that contains the main function of the ROM emulator.
  */
 

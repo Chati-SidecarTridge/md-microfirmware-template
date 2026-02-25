@@ -1,8 +1,8 @@
 /**
  * File: aconfig.h
  * Author: Diego Parrilla Santamaría
- * Date: February 2025
- * Copyright: 2025 - GOODDATA LABS SL
+ * Date: February 2025, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS SL
  * Description: Header file for the app configuration manager
  */
 
