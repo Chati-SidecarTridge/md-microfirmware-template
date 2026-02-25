@@ -178,28 +178,38 @@ static int initRomEmulator(PIO pio, IRQInterceptionCallback requestCallback,
                         &dma_hw->ch[lookupDataRomDmaChannel].al3_read_addr_trig,
                         &pio->rxf[smReadROM], 1, true);
 
+  // Start from a known DMA IRQ state on every init.
+  dma_channel_set_irq1_enabled(readAddrRomDmaChannel, false);
+  dma_channel_set_irq1_enabled(lookupDataRomDmaChannel, false);
+
   // DMA IRQ1 can only have one exclusive handler. If both callbacks are
   // provided they must match, otherwise setup is ambiguous.
   if ((requestCallback != NULL) && (responseCallback != NULL) &&
       (requestCallback != responseCallback)) {
     DPRINTF("Invalid DMA IRQ setup: request and response callbacks differ.\n");
+    irq_set_enabled(DMA_IRQ_1, false);
     return -1;
   }
 
-  if (requestCallback != NULL) {
-    DPRINTF("Enabling DMA IRQ for read_addr_rom_dma_channel.\n");
-    dma_channel_set_irq1_enabled(readAddrRomDmaChannel, true);
-  }
-  if (responseCallback != NULL) {
-    DPRINTF("Enabling DMA IRQ for lookup_data_rom_dma_channel.\n");
-    dma_channel_set_irq1_enabled(lookupDataRomDmaChannel, true);
-  }
-
   IRQInterceptionCallback irqHandler =
-      (responseCallback != NULL) ? responseCallback : requestCallback;
+      (requestCallback != NULL) ? requestCallback : responseCallback;
   if (irqHandler != NULL) {
+    if (requestCallback != NULL) {
+      DPRINTF("Enabling DMA IRQ for read_addr_rom_dma_channel.\n");
+      dma_channel_set_irq1_enabled(readAddrRomDmaChannel, true);
+    }
+    if (responseCallback != NULL) {
+      DPRINTF("Enabling DMA IRQ for lookup_data_rom_dma_channel.\n");
+      dma_channel_set_irq1_enabled(lookupDataRomDmaChannel, true);
+    }
     irq_set_exclusive_handler(DMA_IRQ_1, irqHandler);
     irq_set_enabled(DMA_IRQ_1, true);
+  } else {
+    irq_set_enabled(DMA_IRQ_1, false);
+    IRQInterceptionCallback currentHandler = irq_get_exclusive_handler(DMA_IRQ_1);
+    if (currentHandler != NULL) {
+      irq_remove_handler(DMA_IRQ_1, currentHandler);
+    }
   }
 
   DPRINTF("ROM emulator initialized.\n");
