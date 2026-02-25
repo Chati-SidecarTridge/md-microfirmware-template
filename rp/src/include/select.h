@@ -16,10 +16,12 @@
 
 #define SELECT_LOOP_DELAY 10  // 10 ms
 
+#define SELECT_DEBOUNCE_DELAY 20  // 20 ms
+
 #define SELECT_LONG_RESET 10000  // 10 seconds
 
 // Define a callback typdef for the reset function
-typedef void (*reset_callback_t)();
+typedef void (*reset_callback_t)(void);
 
 /**
  * @brief Initializes the SELECT detection.
