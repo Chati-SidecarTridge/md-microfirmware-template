@@ -1,8 +1,8 @@
 /**
  * File: romemul.h
  * Author: Diego Parrilla Santamaría
- * Date: July 2023-2025
- * Copyright: 2023-2025 - GOODDATA LABS SL
+ * Date: July 2023-2025, February 2026
+ * Copyright: 2023-2026 - GOODDATA LABS SL
  * Description: Header file for the ROM emulator C program.
  */
 
@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "../../build/romemul.pio.h"
+#include "romemul.pio.h"
 #include "constants.h"
 #include "debug.h"
 #include "hardware/dma.h"
@@ -25,8 +25,6 @@
 
 #define ROMEMUL_BUS_BITS 17
 
-typedef void (*IRQInterceptionCallback)();
-
 // extern int read_addr_rom_dma_channel;
 // extern int lookup_data_rom_dma_channel;
 
@@ -37,5 +35,6 @@ int init_romemul(IRQInterceptionCallback requestCallback,
 void dma_irqHandlerLookup(void);
 void dma_irqHandlerAddress(void);
 void dma_setResponseCB(IRQInterceptionCallback responseCallback);
+int romemul_getLookupDataRomDmaChannel(void);
 
 #endif  // ROMEMUL_H

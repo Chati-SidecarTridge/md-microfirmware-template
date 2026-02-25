@@ -1,8 +1,8 @@
 /**
  * File: romemul.c
  * Author: Diego Parrilla Santamaría
- * Date: July 2023-February 2025
- * Copyright: 2023-25 - GOODDATA LABS SL
+ * Date: July 2023-February 2025, February 2026
+ * Copyright: 2023-2026 - GOODDATA LABS SL
  * Description: C file that contains the main function of the ROM emulator.
  */
 
@@ -33,7 +33,7 @@ void __not_in_flash_func(dma_irqHandlerAddress)(void) {
   uint16_t value = *((uint16_t *)addr);
 
   // Clear the interrupt request for the channel
-  dma_hw->ints0 = 1U << readAddrRomDmaChannel;
+  dma_hw->ints1 = 1U << readAddrRomDmaChannel;
 
   DPRINTF("DMA ADDR: $%x, VALUE: $%x\n", addr, value);
 }
@@ -42,13 +42,18 @@ static int initMonitorRom4(PIO pio) {
   // Configure the monitor ROM4 state machine
   // Add the assembled program to the PIO into the memory where there are enough
   // space
-  uint offsetMonitorROM4 = pio_add_program(pio, &monitor_rom4_program);
+  int offsetMonitorROM4 = pio_add_program(pio, &monitor_rom4_program);
+  if (offsetMonitorROM4 < 0) {
+    DPRINTF("Error loading monitor ROM4 PIO program. Error code: %d\n",
+            offsetMonitorROM4);
+    return -1;
+  }
 
   // Claim a free state machine from the PIO read program
   uint smMonitorROM4 = pio_claim_unused_sm(pio, true);
 
   // Start the state machine, executing the PIO read program
-  monitor_rom4_program_init(pio, smMonitorROM4, offsetMonitorROM4,
+  monitor_rom4_program_init(pio, smMonitorROM4, (uint)offsetMonitorROM4,
                             SAMPLE_DIV_FREQ);
 
   // Enable the state machine
@@ -62,14 +67,19 @@ static int initMonitorRom3(PIO pio) {
   // Configure the monitor ROM3 state machine
   // Add the assembled program to the PIO into the memory where there are enough
   // space
-  uint offsetMonitorROM3 = pio_add_program(pio, &monitor_rom3_program);
+  int offsetMonitorROM3 = pio_add_program(pio, &monitor_rom3_program);
+  if (offsetMonitorROM3 < 0) {
+    DPRINTF("Error loading monitor ROM3 PIO program. Error code: %d\n",
+            offsetMonitorROM3);
+    return -1;
+  }
 
   // Claim a free state machine from the PIO read program
   uint smMonitorROM3 = pio_claim_unused_sm(pio, true);
 
   // Start the state machine, executing the PIO read program
   // monitor rom3 and rom4 share the same init function
-  monitor_rom4_program_init(pio, smMonitorROM3, offsetMonitorROM3,
+  monitor_rom4_program_init(pio, smMonitorROM3, (uint)offsetMonitorROM3,
                             SAMPLE_DIV_FREQ);
 
   // Enable the state machine
@@ -90,7 +100,7 @@ static int initRomEmulator(PIO pio, IRQInterceptionCallback requestCallback,
     // Handle the error, perhaps by halting the program or logging an error
     // message
     DPRINTF("Failed to claim a DMA channel for read_addr_rom_dma_channel.\n");
-    dma_channel_unclaim(readAddrRomDmaChannel);
+    readAddrRomDmaChannel = -1;
     return -1;
   }
 
@@ -101,8 +111,10 @@ static int initRomEmulator(PIO pio, IRQInterceptionCallback requestCallback,
   if (lookupDataRomDmaChannel == -1) {
     // Handle the error
     DPRINTF("Failed to claim a DMA channel for lookup_data_rom_dma_channel.\n");
-    // Optionally release the previously claimed channel if you want to clean up
-    dma_channel_unclaim(lookupDataRomDmaChannel);
+    // Release the first channel, since setup cannot continue.
+    dma_channel_unclaim(readAddrRomDmaChannel);
+    readAddrRomDmaChannel = -1;
+    lookupDataRomDmaChannel = -1;
     return -1;
   }
 
@@ -112,13 +124,23 @@ static int initRomEmulator(PIO pio, IRQInterceptionCallback requestCallback,
   // Configure the read PIO state machine
   // Add the assembled program to the PIO into the memory where there are enough
   // space
-  uint offsetReadROM = pio_add_program(pio, &romemul_read_program);
+  int offsetReadROM = pio_add_program(pio, &romemul_read_program);
+  if (offsetReadROM < 0) {
+    DPRINTF("Error loading ROM emulator PIO program. Error code: %d\n",
+            offsetReadROM);
+    dma_channel_unclaim(lookupDataRomDmaChannel);
+    dma_channel_unclaim(readAddrRomDmaChannel);
+    lookupDataRomDmaChannel = -1;
+    readAddrRomDmaChannel = -1;
+    return -1;
+  }
 
   // Claim a free state machine from the PIO read program
   uint smReadROM = pio_claim_unused_sm(pio, true);
 
   // Start the state machine, executing the PIO read program
-  romemul_read_program_init(pio, smReadROM, offsetReadROM, READ_ADDR_GPIO_BASE,
+  romemul_read_program_init(pio, smReadROM, (uint)offsetReadROM,
+                            READ_ADDR_GPIO_BASE,
                             READ_ADDR_PIN_COUNT, READ_SIGNAL_GPIO_BASE,
                             SAMPLE_DIV_FREQ);
 
@@ -156,23 +178,38 @@ static int initRomEmulator(PIO pio, IRQInterceptionCallback requestCallback,
                         &dma_hw->ch[lookupDataRomDmaChannel].al3_read_addr_trig,
                         &pio->rxf[smReadROM], 1, true);
 
-  // If there is a requestCallback function, then enable the DMA IRQ and set the
-  // callback Otherwise, simply don't enable the DMA IRQ Use the DMA_IRQ_1 for
-  // the read_addr_rom_dma_channel
-  if (requestCallback != NULL) {
-    DPRINTF("Enabling DMA IRQ for read_addr_rom_dma_channel.\n");
-    dma_channel_set_irq1_enabled(readAddrRomDmaChannel, true);
-    irq_set_exclusive_handler(DMA_IRQ_1, requestCallback);
-    irq_set_enabled(DMA_IRQ_1, true);
+  // Start from a known DMA IRQ state on every init.
+  dma_channel_set_irq1_enabled(readAddrRomDmaChannel, false);
+  dma_channel_set_irq1_enabled(lookupDataRomDmaChannel, false);
+
+  // DMA IRQ1 can only have one exclusive handler. If both callbacks are
+  // provided they must match, otherwise setup is ambiguous.
+  if ((requestCallback != NULL) && (responseCallback != NULL) &&
+      (requestCallback != responseCallback)) {
+    DPRINTF("Invalid DMA IRQ setup: request and response callbacks differ.\n");
+    irq_set_enabled(DMA_IRQ_1, false);
+    return -1;
   }
-  // If there is a responseCallback function, then enable the DMA IRQ and set
-  // the callback Otherwise, simply don't enable the DMA IRQ Use the DMA_IRQ_1
-  // for the lookup_data_rom_dma_channel
-  if (responseCallback != NULL) {
-    DPRINTF("Enabling DMA IRQ for lookup_data_rom_dma_channel.\n");
-    dma_channel_set_irq1_enabled(lookupDataRomDmaChannel, true);
-    irq_set_exclusive_handler(DMA_IRQ_1, responseCallback);
+
+  IRQInterceptionCallback irqHandler =
+      (requestCallback != NULL) ? requestCallback : responseCallback;
+  if (irqHandler != NULL) {
+    if (requestCallback != NULL) {
+      DPRINTF("Enabling DMA IRQ for read_addr_rom_dma_channel.\n");
+      dma_channel_set_irq1_enabled(readAddrRomDmaChannel, true);
+    }
+    if (responseCallback != NULL) {
+      DPRINTF("Enabling DMA IRQ for lookup_data_rom_dma_channel.\n");
+      dma_channel_set_irq1_enabled(lookupDataRomDmaChannel, true);
+    }
+    irq_set_exclusive_handler(DMA_IRQ_1, irqHandler);
     irq_set_enabled(DMA_IRQ_1, true);
+  } else {
+    irq_set_enabled(DMA_IRQ_1, false);
+    IRQInterceptionCallback currentHandler = irq_get_exclusive_handler(DMA_IRQ_1);
+    if (currentHandler != NULL) {
+      irq_remove_handler(DMA_IRQ_1, currentHandler);
+    }
   }
 
   DPRINTF("ROM emulator initialized.\n");
@@ -200,6 +237,10 @@ void dma_setResponseCB(IRQInterceptionCallback responseCallback) {
   }
 }
 
+int romemul_getLookupDataRomDmaChannel(void) {
+  return lookupDataRomDmaChannel;
+}
+
 int init_romemul(IRQInterceptionCallback requestCallback,
                  IRQInterceptionCallback responseCallback,
                  bool copyFlashToRAM) {
@@ -208,6 +249,8 @@ int init_romemul(IRQInterceptionCallback requestCallback,
   // >16bits/clk here, i.e. if you need to saturate the bus completely.
   bus_ctrl_hw->priority =
       BUSCTRL_BUS_PRIORITY_DMA_W_BITS | BUSCTRL_BUS_PRIORITY_DMA_R_BITS;
+  // bus_ctrl_hw->priority =
+  //     BUSCTRL_BUS_PRIORITY_PROC0_BITS | BUSCTRL_BUS_PRIORITY_PROC1_BITS;
 
   // Copy the content of the FLASH to RAM before initializing the emulator code
   // If not initialized, assume somebody else will copy "something" to RAM
@@ -289,4 +332,6 @@ int init_romemul(IRQInterceptionCallback requestCallback,
                    true);  // Pull down (false, true)
     gpio_put(WRITE_DATA_GPIO_BASE + i, 0);
   }
+
+  return smReadROM;
 }

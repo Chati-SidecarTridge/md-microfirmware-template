@@ -46,4 +46,10 @@ PICO_TOOLCHAIN_PATH=/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin \
 | Build stops with missing `CHARACTER_GAP_MS` | Re-add `#define CHARACTER_GAP_MS 700` to `rp/src/include/blink.h` |
 | Final steps fail copying UF2 | Upstream compile failed—scroll back for the first error before the copy step |
 
+## 5. Editing Guardrails
+- Agents are **not allowed** to modify code inside these directories under any circumstances:
+  - `/fatfs-sdk`
+  - `/pico-sdk`
+  - `/pico-extras`
+
 Keep this file updated as the process evolves so every agent starts with the latest tribal knowledge.

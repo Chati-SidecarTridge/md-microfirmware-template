@@ -1,8 +1,8 @@
 /**
  * File: display.h
  * Author: Diego Parrilla Santamaría
- * Date: December 2024
- * Copyright: 2024 - GOODDATA LABS SL
+ * Date: December 2024, February 2026
+ * Copyright: 2024-2026 - GOODDATA LABS SL
  * Description: Header file for the shared displat functions
  */
 
@@ -36,6 +36,12 @@
 #define DISPLAY_MASK_TABLE_SIZE 256
 #define DISPLAY_MASK_TABLE_CHAR 8
 
+// If 1, the display will not use the framebuffer and will write directly to the
+// display memory. This is useful to reduce the memory usage.
+// When not using the framebuffer, the endianess swap must be done in the remote
+// computer.
+#define DISPLAY_BYPASS_FRAMEBUFFER 1
+
 // #define DISPLAY_COMMAND_ADDRESS (ROM_IN_RAM_ADDRESS + 0x10000 + 8000) //
 // increment 64K bytes to get the second 64K block + 8000 bytes to get the 8K
 // block #define DISPLAY_HIGHRES_TRANSTABLE_ADDRESS (ROM_IN_RAM_ADDRESS +
@@ -49,7 +55,7 @@
 // Buffer size calculation: width * (height / 8)
 #define DISPLAY_BUFFER_SIZE \
   (uint32_t)((DISPLAY_WIDTH / DISPLAY_TILE_HEIGHT) * DISPLAY_HEIGHT)
-#define DISPLAY_COPYRIGHT_MESSAGE "(C)GOODDATA LABS SL 2023-25"
+#define DISPLAY_COPYRIGHT_MESSAGE "(C)GOODDATA LABS SL 2023-26"
 #define DISPLAY_PRODUCT_MSG "SidecarTridge Multi-Device"
 #define DISPLAY_RESET_WAIT_MESSAGE "Resetting the computer"
 #define DISPLAY_RESET_FORCE_MESSAGE "Reset manually if it doesn't boot."

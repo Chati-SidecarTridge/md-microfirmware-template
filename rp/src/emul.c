@@ -1,15 +1,38 @@
 /**
  * File: emul.c
  * Author: Diego Parrilla Santamaría
- * Date: February 2025
- * Copyright: 2025 - GOODDATA LABS
+ * Date: February 2025, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS
  * Description: Template code for the core emulation
  */
 
 #include "emul.h"
 
+#include <stdint.h>
+
 // inclusw in the C file to avoid multiple definitions
 #include "target_firmware.h"  // Include the target firmware binary
+
+#include "aconfig.h"
+#include "constants.h"
+#include "debug.h"
+#include "display.h"
+#include "ff.h"
+#include "gconfig.h"
+#include "memfunc.h"
+#include "network.h"
+#include "pico/stdlib.h"
+#include "reset.h"
+#include "romemul.h"
+#include "sdcard.h"
+#include "select.h"
+#include "term.h"
+
+#define SLEEP_LOOP_MS 100
+
+enum {
+  APP_MODE_SETUP = 255  // Setup
+};
 
 // Command handlers
 static void cmdMenu(const char *arg);
@@ -17,6 +40,14 @@ static void cmdClear(const char *arg);
 static void cmdExit(const char *arg);
 static void cmdHelp(const char *arg);
 static void cmdBooster(const char *arg);
+static void cmdSettings(const char *arg);
+static void cmdPrint(const char *arg);
+static void cmdSave(const char *arg);
+static void cmdErase(const char *arg);
+static void cmdGet(const char *arg);
+static void cmdPutInt(const char *arg);
+static void cmdPutBool(const char *arg);
+static void cmdPutString(const char *arg);
 
 // Command table
 static const Command commands[] = {
@@ -25,15 +56,15 @@ static const Command commands[] = {
     {"e", cmdExit},
     {"x", cmdBooster},
     {"?", cmdHelp},
-    {"s", term_cmdSettings},
-    {"settings", term_cmdSettings},
-    {"print", term_cmdPrint},
-    {"save", term_cmdSave},
-    {"erase", term_cmdErase},
-    {"get", term_cmdGet},
-    {"put_int", term_cmdPutInt},
-    {"put_bool", term_cmdPutBool},
-    {"put_str", term_cmdPutString},
+    {"s", cmdSettings},
+    {"settings", cmdSettings},
+    {"print", cmdPrint},
+    {"save", cmdSave},
+    {"erase", cmdErase},
+    {"get", cmdGet},
+    {"put_int", cmdPutInt},
+    {"put_bool", cmdPutBool},
+    {"put_str", cmdPutString},
 };
 
 // Number of commands in the table
@@ -41,13 +72,14 @@ static const size_t numCommands = sizeof(commands) / sizeof(commands[0]);
 
 // Keep active loop or exit
 static bool keepActive = true;
+static bool menuScreenActive = false;
+static absolute_time_t menuRefreshTime;
+
+#define MENU_REFRESH_TIME_MS 1000
 
 // Should we reset the device, or jump to the booster app?
 // By default, we reset the device.
 static bool resetDeviceAtBoot = true;
-
-// Do we have network or not?
-static bool hasNetwork = false;
 
 static void showTitle() {
   term_printString(
@@ -57,37 +89,26 @@ static void showTitle() {
 }
 
 static void menu(void) {
+  menuScreenActive = true;
   showTitle();
   term_printString("\n\n");
-  term_printString("[S] Settings\n\n");
-  term_printString("[E] Exit to desktop\n");
-  term_printString("[X] Return to booster menu\n\n");
+  term_printString("[S]ettings     | Back to this [M]enu\n");
+  term_printString("[E]xit desktop | [X] Back to Booster\n\n");
 
-  term_printString("\n");
-
-  term_printString("[M] Refresh this menu\n");
-
-  term_printString("\n");
-
-  // Display network status
-  term_printString("Network status: ");
-  ip_addr_t currentIp = network_getCurrentIp();
-
-  hasNetwork = currentIp.addr != 0;
-  if (hasNetwork) {
-    term_printString("Connected\n");
-  } else {
-    term_printString("Not connected\n");
-  }
+  // Display network information
+  term_printNetworkInfo();
 
   term_printString("\n");
   term_printString("Select an option: ");
+  term_markMenuPromptCursor();
+  menuRefreshTime = make_timeout_time_ms(MENU_REFRESH_TIME_MS);
 }
 
 // Command handlers
 void cmdMenu(const char *arg) { menu(); }
 
 void cmdHelp(const char *arg) {
+  menuScreenActive = false;
   // term_printString("\x1B" "E" "Available commands:\n");
   term_printString("Available commands:\n");
   term_printString(" General:\n");
@@ -96,20 +117,65 @@ void cmdHelp(const char *arg) {
   term_printString("  help    - Show available commands\n");
 }
 
-void cmdClear(const char *arg) { term_clearScreen(); }
+void cmdClear(const char *arg) {
+  menuScreenActive = false;
+  term_clearScreen();
+}
 
 void cmdExit(const char *arg) {
+  menuScreenActive = false;
   term_printString("Exiting terminal...\n");
   // Send continue to desktop command
   SEND_COMMAND_TO_DISPLAY(DISPLAY_COMMAND_CONTINUE);
 }
 
 void cmdBooster(const char *arg) {
+  menuScreenActive = false;
   term_printString("Launching Booster app...\n");
   term_printString("The computer will boot shortly...\n\n");
   term_printString("If it doesn't boot, power it on and off.\n");
   resetDeviceAtBoot = false;  // Jump to the booster app
   keepActive = false;         // Exit the active loop
+}
+
+void cmdSettings(const char *arg) {
+  menuScreenActive = false;
+  term_cmdSettings(arg);
+}
+
+void cmdPrint(const char *arg) {
+  menuScreenActive = false;
+  term_cmdPrint(arg);
+}
+
+void cmdSave(const char *arg) {
+  menuScreenActive = false;
+  term_cmdSave(arg);
+}
+
+void cmdErase(const char *arg) {
+  menuScreenActive = false;
+  term_cmdErase(arg);
+}
+
+void cmdGet(const char *arg) {
+  menuScreenActive = false;
+  term_cmdGet(arg);
+}
+
+void cmdPutInt(const char *arg) {
+  menuScreenActive = false;
+  term_cmdPutInt(arg);
+}
+
+void cmdPutBool(const char *arg) {
+  menuScreenActive = false;
+  term_cmdPutBool(arg);
+}
+
+void cmdPutString(const char *arg) {
+  menuScreenActive = false;
+  term_cmdPutString(arg);
 }
 
 // This section contains the functions that are called from the main loop
@@ -129,7 +195,6 @@ static void preinit() {
   showTitle();
   term_printString("\n\n");
   term_printString("Configuring network... please wait...\n");
-  term_printString("or press SHIFT to boot to desktop.\n");
 
   display_refresh();
 }
@@ -149,7 +214,7 @@ void failure(const char *message) {
   display_refresh();
 }
 
-static void init(const char *folder) {
+static void init(void) {
   // Set the command table
   term_setCommands(commands, numCommands);
 
@@ -267,8 +332,7 @@ void emul_start() {
   // to the SD card. The SD card is used to store the ROM, floppies, even
   // full hard disk files, configuration files, and other data.
   // The SD card is initialized here. If the SD card is not present, the
-  // app will show an error message and wait for the user to insert the SD card.
-  // The app will not start until the SD card is inserted correctly.
+  // app continues and reports SD status in the terminal menu.
   // Each app or microfirmware must have a folder in the SD card where the
   // files are stored. The folder name is defined in the configuration.
   // If there is no folder in the micro SD card, the app will create it.
@@ -285,17 +349,7 @@ void emul_start() {
   }
   int sdcardErr = sdcard_initFilesystem(&fsys, folderName);
   if (sdcardErr != SDCARD_INIT_OK) {
-    DPRINTF("Error initializing the SD card: %i\n", sdcardErr);
-    failure(
-        "SD card error.\nCheck the card is inserted correctly.\nInsert card "
-        "and restart the computer.");
-    while (1) {
-      // Wait forever
-      term_loop();
-#ifdef BLINK_H
-      blink_toogle();
-#endif
-    }
+    DPRINTF("SD card unavailable (error %i). Continuing without SD.\n", sdcardErr);
   } else {
     DPRINTF("SD card found & initialized\n");
   }
@@ -360,23 +414,18 @@ void emul_start() {
     }
   }
 
-  // 7. Now complete the terminal emulator initialization
+  // 7. Configure the SELECT button so menu status can show it immediately.
+  select_configure();
+
+  // 8. Now complete the terminal emulator initialization
   // The terminal emulator is used to interact with the user to configure the
   // device.
-  init(folderName);
+  init();
 
   // Blink on
 #ifdef BLINK_H
   blink_on();
 #endif
-
-  // 8. Configure the SELECT button
-  // Short press: reset the device and restart the app
-  // Long press: reset the device and erase the flash.
-  select_configure();
-  select_coreWaitPush(
-      reset_device,
-      reset_deviceAndEraseFlash);  // Wait for the SELECT button to be pushed
 
   // 9. Start the main loop
   // The main loop is the core of the app. It is responsible for running the
@@ -384,27 +433,31 @@ void emul_start() {
   // The main loop runs until the user decides to exit.
   // For testing purposes, this app only shows commands to manage the settings
   DPRINTF("Start the app loop here\n");
-  absolute_time_t wifiScanTime = make_timeout_time_ms(
-      WIFI_SCAN_TIME_MS);  // 3 seconds minimum for network scanning
-
-  absolute_time_t startDownloadTime =
-      make_timeout_time_ms(DOWNLOAD_DAY_MS);  // Future time
   while (getKeepActive()) {
 #if PICO_CYW43_ARCH_POLL
     network_safePoll();
-    cyw43_arch_wait_for_work_until(wifiScanTime);
+    cyw43_arch_wait_for_work_until(make_timeout_time_ms(SLEEP_LOOP_MS));
 #else
     sleep_ms(SLEEP_LOOP_MS);
 #endif
     // Check remote commands
     term_loop();
+
+    if (menuScreenActive) {
+      char *input = term_getInputBuffer();
+      bool hasPendingInput = (input != NULL) && (input[0] != '\0');
+      if (!hasPendingInput &&
+          (absolute_time_diff_us(get_absolute_time(), menuRefreshTime) <= 0)) {
+        term_refreshMenuLiveInfo();
+        menuRefreshTime = make_timeout_time_ms(MENU_REFRESH_TIME_MS);
+      }
+    }
   }
 
   // 10. Send RESET computer command
   // Ok, so we are done with the setup but we want to reset the computer to
   // reboot in the same microfirmware app or start the booster app
 
-  select_coreWaitPushDisable();  // Disable the SELECT button
   sleep_ms(SLEEP_LOOP_MS);
   // We must reset the computer
   SEND_COMMAND_TO_DISPLAY(DISPLAY_COMMAND_RESET);

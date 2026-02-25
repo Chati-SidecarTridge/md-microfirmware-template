@@ -1,8 +1,8 @@
 /**
  * File: sdcard.h
  * Author: Diego Parrilla Santamaría
- * Date: December 2024
- * Copyright: 2024 - GOODDATA LABS SL
+ * Date: December 2024, February 2026
+ * Copyright: 2024-2026 - GOODDATA LABS SL
  * Description: Header for sdcard.c which manages the SD card
  */
 
@@ -13,7 +13,6 @@
 #include "debug.h"
 #include "gconfig.h"
 #include "sd_card.h"
-#include "sdcard.h"
 
 typedef enum {
   SDCARD_INIT_OK = 0,
@@ -94,6 +93,22 @@ void sdcard_setSpiSpeedSettings();
  * stored.
  */
 void sdcard_getInfo(FATFS *fsPtr, uint32_t *totalSizeMb, uint32_t *freeSpaceMb);
+
+/**
+ * @brief Indicates whether the SD filesystem is currently mounted.
+ *
+ * @return true if mounted and usable; false otherwise.
+ */
+bool sdcard_isMounted(void);
+
+/**
+ * @brief Retrieves total and free SD card space from the mounted filesystem.
+ *
+ * @param totalSizeMb Output total size in MB.
+ * @param freeSpaceMb Output free space in MB.
+ * @return true on success, false on failure or if not mounted.
+ */
+bool sdcard_getMountedInfo(uint32_t *totalSizeMb, uint32_t *freeSpaceMb);
 
 // Hardware Configuration of SPI "objects"
 

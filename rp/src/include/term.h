@@ -1,27 +1,17 @@
 /**
  * File: term.h
  * Author: Diego Parrilla Santamaría
- * Date: January 20205
- * Copyright: 2025 - GOODDATA LABS SL
+ * Date: January 20205, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS SL
  * Description: Header for the terminal
  */
 
 #ifndef TERM_H
 #define TERM_H
 
+#include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "aconfig.h"
-#include "constants.h"
-#include "debug.h"
-#include "display_term.h"
-#include "hardware/dma.h"
-#include "memfunc.h"
-#include "reset.h"
-#include "time.h"
-#include "tprotocol.h"
+#include "pico.h"
 
 #define ADDRESS_HIGH_BIT 0x8000  // High bit of the address
 
@@ -169,6 +159,9 @@ void term_cmdGet(const char *arg);
 void term_cmdPutInt(const char *arg);
 void term_cmdPutBool(const char *arg);
 void term_cmdPutString(const char *arg);
+void term_printNetworkInfo(void);
+void term_markMenuPromptCursor(void);
+void term_refreshMenuLiveInfo(void);
 
 void __not_in_flash_func(term_loop)();
 

@@ -1,8 +1,8 @@
 /**
  * File: constants.h
  * Author: Diego Parrilla Santamaría
- * Date: November 2024
- * Copyright: 2025 - GOODDATA LABS SL
+ * Date: November 2024, February 2026
+ * Copyright: 2025-2026 - GOODDATA LABS SL
  * Description: Constants used in the placeholder file
  */
 

@@ -1,8 +1,8 @@
 /**
  * File: network.h
  * Author: Diego Parrilla Santamaría
- * Date: December 2024
- * Copyright: 2024 - GOODDATA LABS SL
+ * Date: December 2024, February 2026
+ * Copyright: 2024-2026 - GOODDATA LABS SL
  * Description: Header for network.c which starts the network stack
  */
 
@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include "hardware/clocks.h"
+#include "lwip/apps/mdns.h"
 #include "pico/stdlib.h"
 
 #define NETWORK_POLLING_INTERVAL 100  // 100 ms
@@ -229,6 +230,13 @@ wifi_sta_conn_status_t network_wifiConnStatus(
 char* network_wifiConnStatusStr();
 
 /**
+ * @brief Returns the configured WiFi mode as text.
+ *
+ * @return "STA", "AP", or "UNKNOWN".
+ */
+const char* network_getWifiModeStr();
+
+/**
  * @brief Converts a numeric WiFi authentication code into a descriptive string.
  *
  * Facilitates understanding of the authentication mode used.
@@ -236,7 +244,7 @@ char* network_wifiConnStatusStr();
  * @param connect_code Numeric authentication code.
  * @return Pointer to a string with the full authentication type description.
  */
-const char* network_getAuthTypeString(u_int16_t connect_code);
+const char* network_getAuthTypeString(uint16_t connect_code);
 
 /**
  * @brief Returns an abbreviated string for the WiFi authentication type.
@@ -246,7 +254,7 @@ const char* network_getAuthTypeString(u_int16_t connect_code);
  * @param connect_code Numeric authentication code.
  * @return Pointer to a short string representing the authentication type.
  */
-const char* network_getAuthTypeStringShort(u_int16_t connect_code);
+const char* network_getAuthTypeStringShort(uint16_t connect_code);
 
 /**
  * @brief Retrieves the current IP address assigned to the network interface.
@@ -256,6 +264,88 @@ const char* network_getAuthTypeStringShort(u_int16_t connect_code);
  * @return IP address structure.
  */
 ip_addr_t network_getCurrentIp();
+
+/**
+ * @brief Retrieves details of the currently connected WiFi network.
+ *
+ * Returns SSID, BSSID, auth mode and RSSI for the active STA connection when
+ * available.
+ *
+ * @return wifi_network_info_t Network details structure.
+ */
+wifi_network_info_t network_getCurrentNetworkInfo();
+
+/**
+ * @brief Retrieves the CYW43 MAC address as a colon-separated string.
+ *
+ * The returned pointer refers to a static buffer that is overwritten on each
+ * call. An empty string is returned if the MAC cannot be read or WiFi is not
+ * initialized.
+ *
+ * @return Pointer to a null-terminated string containing the MAC address.
+ */
+const char* network_getCyw43MacStr();
+
+/**
+ * @brief Returns the current MCU architecture string.
+ *
+ * @return "RP2040", "RP2350", or "UNKNOWN".
+ */
+const char* network_getMcuArchStr();
+
+/**
+ * @brief Returns the unique MCU identifier as a lowercase hex string.
+ *
+ * @return Pointer to a static null-terminated string.
+ */
+const char* network_getMcuIdStr();
+
+/**
+ * @brief Parses and cleans up an SSID string.
+ *
+ * This function processes the input SSID and ensures it meets the required
+ * standard: it is truncated to MAX_SSID_LENGTH if it exceeds the maximum length
+ * and cleaned up if it does not comply with the standard format.
+ *
+ * @param ssid    Pointer to the input null-terminated SSID string.
+ * @param outSSID Pointer to the output character array where the parsed and
+ * cleaned SSID is stored. The caller is responsible for ensuring this buffer is
+ * sufficiently allocated.
+ *
+ * @return true if the SSID is valid after parsing and cleaning, false
+ * otherwise.
+ */
+bool network_parseSSID(const char* ssid, char* outSSID);
+
+/**
+ * @brief Parses and cleans up a WiFi network password according to the IEEE
+ * 802.11 standard.
+ *
+ * This function processes the provided password string by truncating it if it
+ * exceeds WIFI_AP_PASS_MAX_LENGTH. The cleaned and possibly truncated password
+ * is stored in outPassword.
+ *
+ * @param password The original WiFi network password string.
+ * @param outPassword The buffer where the cleaned up password is written.
+ * @return true if the password is valid, false otherwise.
+ */
+bool network_parsePassword(const char* password, char* outPassword);
+
+/**
+ * @brief Returns a human-readable string for the WiFi station connection
+ * process status.
+ *
+ * This function converts a wifi_sta_conn_process_status_t enumeration value
+ * into a descriptive string for easier interpretation and debugging of WiFi
+ * connection statuses.
+ *
+ * @param status The current WiFi station connection process status.
+ *
+ * @return A constant character pointer to the string representing the given
+ * status.
+ */
+const char* network_WifiStaConnStatusString(
+    wifi_sta_conn_process_status_t status);
 
 #endif
 

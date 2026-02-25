@@ -1,8 +1,8 @@
 /**
  * File: select.h
  * Author: Diego Parrilla Santamaría
- * Date: November 2025
- * Copyright: 2024 - GOODDATA LABS SL
+ * Date: November 2025, February 2026
+ * Copyright: 2024-2026 - GOODDATA LABS SL
  * Description: Header file for SELECT button detection functions
  */
 
@@ -16,10 +16,12 @@
 
 #define SELECT_LOOP_DELAY 10  // 10 ms
 
+#define SELECT_DEBOUNCE_DELAY 20  // 20 ms
+
 #define SELECT_LONG_RESET 10000  // 10 seconds
 
 // Define a callback typdef for the reset function
-typedef void (*reset_callback_t)();
+typedef void (*reset_callback_t)(void);
 
 /**
  * @brief Initializes the SELECT detection.

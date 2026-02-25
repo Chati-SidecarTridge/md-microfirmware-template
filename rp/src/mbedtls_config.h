@@ -29,6 +29,7 @@
 #define MBEDTLS_CIPHER_C
 #define MBEDTLS_AES_C
 #define MBEDTLS_GCM_C
+#define MBEDTLS_BASE64_C
 #define MBEDTLS_MD_C
 #define MBEDTLS_SHA256_C
 
@@ -47,6 +48,7 @@
 #define MBEDTLS_ECDH_C
 #define MBEDTLS_ECDSA_C
 #define MBEDTLS_RSA_C
+#define MBEDTLS_PKCS1_V15
 #define MBEDTLS_X509_USE_C
 #define MBEDTLS_X509_CRT_PARSE_C
 
