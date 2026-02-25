@@ -11,6 +11,9 @@
 #include "debug.h"
 #include "emul.h"
 #include "gconfig.h"
+#include "hardware/clocks.h"
+#include "hardware/vreg.h"
+#include "pico/stdlib.h"
 #include "reset.h"
 
 // This is the main.c file for the app or microfirmware. It is the entry point
